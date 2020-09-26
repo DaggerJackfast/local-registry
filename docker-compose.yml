@@ -1,22 +1,54 @@
-nginx:
-  image: "nginx:1.9"
-  container_name: nginx
-  ports:
-    - 443:443
-    - 80:80
-  links:
-    - registry:registry
-  volumes:
-    - ./nginx/:/etc/nginx/conf.d/
-registry:
-  image: registry:latest
-  container_name: registry
-  ports:
-    - "5000:5000"
-  environment:
-    - REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/data
-    - REGISTRY_STORAGE_DELETE_ENABLED=true
-  volumes:
-    - ./data:/data    
-  restart: unless-stopped
+version: "3.3"
+services:
+  nginx:
+    image: "nginx:1.9"
+    container_name: nginx
+    ports:
+      - 443:443
+      - 80:80
+    links:
+      - registry:registry
+      - ui:ui
+    volumes:
+      - ./nginx/:/etc/nginx/conf.d/
+    networks:
+        - registry-local-net
+
+  registry:
+    image: registry:latest
+    container_name: registry
+    ports:
+      - "5000:5000"
+    environment:
+      - REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY=/data
+      - REGISTRY_STORAGE_DELETE_ENABLED=true
+      - REGISTRY_HTTP_HEADERS_X-Content-Type-Options=[nosniff]
+      - REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin=['https://registry.local']
+      - REGISTRY_HTTP_HEADERS_Access-Control-Allow-Methods=['HEAD', 'GET', 'OPTIONS', 'DELETE']
+      - REGISTRY_HTTP_HEADERS_Access-Control-Allow-Headers=['Authorization']
+      - REGISTRY_HTTP_HEADERS_Access-Control-Expose-Headers=['Docker-Content-Digest']
+      - REGISTRY_HTTP_HEADERS_Access-Control-Allow-Credentials=['true']
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+    networks:
+        - registry-local-net
+
+  ui:
+    image: joxit/docker-registry-ui:static
+    restart: always
+    ports:
+      - 8089:80
+    links:
+      - registry:registry
+    environment:
+      - REGISTRY_TITLE=Private Docker Registry
+      - URL=https://registry.local
+      - DELETE_IMAGES=true
+    container_name: ui
+    networks:
+      - registry-local-net
+
+networks:
+  registry-local-net:
 
