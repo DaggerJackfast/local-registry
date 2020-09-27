@@ -11,6 +11,7 @@ services:
       - ui:ui
     volumes:
       - ./nginx/:/etc/nginx/conf.d/
+      - ./certs/:/etc/nginx/certs
     networks:
         - registry-local-net
 
